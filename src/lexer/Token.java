@@ -189,6 +189,12 @@ public class Token
             return "TL";
         case CONCAT:
             return "CONCAT";
+        case IF:
+            return "IF";
+        case THEN:
+            return "THEN";
+        case ELSE:
+            return "ELSE";
         case LEN:
             return "LEN";
         default:

@@ -196,6 +196,23 @@ public enum TokenType
      */
     LEN,
 
+
+    /**
+     * If Statement.
+     */
+    IF,
+
+
+    /**
+     * Then Statement.
+     */
+    THEN,
+
+    /**
+     * Else Statement.
+     */
+    ELSE,
+
     /**
      * The end of the file token.
      */
