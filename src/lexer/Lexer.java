@@ -265,6 +265,9 @@ public class Lexer
         keywords.put("in", TokenType.IN);
         keywords.put("hd", TokenType.LST_HD);
         keywords.put("tl", TokenType.LST_TL);
+        keywords.put("if", TokenType.IF);
+        keywords.put("then", TokenType.THEN);
+        keywords.put("else", TokenType.ELSE);
         keywords.put("len", TokenType.LEN);
     }
 

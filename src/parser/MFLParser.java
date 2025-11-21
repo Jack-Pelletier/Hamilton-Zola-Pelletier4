@@ -33,6 +33,7 @@ import ast.nodes.TailNode;
 import ast.nodes.TokenNode;
 import ast.nodes.UnaryOpNode;
 import ast.nodes.ValNode;
+import ast.nodes.IfNode;
 import lexer.Lexer;
 import lexer.TokenType;
 import lexer.Token;
@@ -160,6 +161,8 @@ public class MFLParser extends Parser {
         // Are we looking at a let expression?
         if (checkMatch(TokenType.LET))
             return handleLet();
+        else if (checkMatch(TokenType.IF))
+            return handleIf();
         else 
           expr = getGoodParse(evalBoolExpr());
 
@@ -333,6 +336,7 @@ public class MFLParser extends Parser {
             match(TokenType.RPAREN, ")");        
         } 
         
+
         // Handle the literals.
         else if (tokenIs(TokenType.INT) || tokenIs(TokenType.REAL) ||
                    tokenIs(TokenType.TRUE) || tokenIs(TokenType.FALSE)) {
@@ -437,6 +441,32 @@ public class MFLParser extends Parser {
         expr = getGoodParse(evalExpr());
 
         return new LetNode(var, varExpr, expr, getCurrLine());
+    }
+
+    /**
+     * This method handles an if expression if <expr> then <expr> else <expr>
+     * @return an if node.
+     * @throws ParseException 
+     */
+    private SyntaxNode handleIf() throws ParseException {
+        SyntaxNode cond;
+        SyntaxNode tBranch;
+        SyntaxNode fBranch;
+
+        trace("enter handleIf");
+
+        // Handle the condition expression.
+        cond = getGoodParse(evalExpr());
+
+        // Handle the then expression.
+        match(TokenType.THEN, "then");
+        tBranch = getGoodParse(evalExpr());
+
+        // Handle the else expression.
+        match(TokenType.ELSE, "else");
+        fBranch = getGoodParse(evalExpr());
+
+        return new IfNode(cond, tBranch, fBranch, getCurrLine());
     }
 
 }
