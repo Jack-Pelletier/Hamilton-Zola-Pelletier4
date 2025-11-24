@@ -34,6 +34,7 @@ import ast.nodes.TokenNode;
 import ast.nodes.UnaryOpNode;
 import ast.nodes.ValNode;
 import ast.nodes.IfNode;
+import ast.nodes.LambdaNode;
 import lexer.Lexer;
 import lexer.TokenType;
 import lexer.Token;
@@ -125,7 +126,7 @@ public class MFLParser extends Parser {
 
       // Make sure we have a semi colon ending the line.
       match(TokenType.SEMI, ";");
-      
+
       exprs.add(currNode);
     }
 
@@ -151,23 +152,26 @@ public class MFLParser extends Parser {
   }
 
   /**
-     * Method to evaluate the expression non-terminal <expr>
-     * @throws ParseException if there is an error during parsing.
-     */
-    private SyntaxNode evalExpr() throws ParseException {
-        trace("Enter <expr>");
-        SyntaxNode expr = null;
+   * Method to evaluate the expression non-terminal <expr>
+   * 
+   * @throws ParseException if there is an error during parsing.
+   */
+  private SyntaxNode evalExpr() throws ParseException {
+    trace("Enter <expr>");
+    SyntaxNode expr = null;
 
-        // Are we looking at a let expression?
-        if (checkMatch(TokenType.LET))
-            return handleLet();
-        else if (checkMatch(TokenType.IF))
-            return handleIf();
-        else 
-          expr = getGoodParse(evalBoolExpr());
+    // Are we looking at a let expression?
+    if (checkMatch(TokenType.LET))
+      return handleLet();
+    else if (checkMatch(TokenType.IF))
+      return handleIf();
+    else if (checkMatch(TokenType.FN))
+      return handleLambda();
+    else
+      expr = getGoodParse(evalBoolExpr());
 
-        return expr;
-    }
+    return expr;
+  }
 
   /**
    * Method to evaluate the bool expression non-terminal <bexpr>
@@ -277,87 +281,84 @@ public class MFLParser extends Parser {
   }
 
   /**
-     * Method to evaluate the factor non-terminal (the tightest binding operations). 
-     * @return the subtree resulting from the parse.
-     * @throws ParseException when parsing fails.
-     */
-    private SyntaxNode evalFactor() throws ParseException {
-        trace("Enter <factor>");
-        SyntaxNode fact = null;
+   * Method to evaluate the factor non-terminal (the tightest binding operations).
+   * 
+   * @return the subtree resulting from the parse.
+   * @throws ParseException when parsing fails.
+   */
+  private SyntaxNode evalFactor() throws ParseException {
+    trace("Enter <factor>");
+    SyntaxNode fact = null;
 
-        // Do we have a unary sub (i.e., a negative).
-        if (checkMatch(TokenType.SUB))
-        {
-            SyntaxNode expr = getGoodParse(evalFactor());
-            return new UnaryOpNode(expr, TokenType.SUB, getCurrLine());
-        }
-
-
-              // list head built in function.
-        else if (checkMatch(TokenType.LST_HD)) {
-            if (match(TokenType.LPAREN, "(")) {
-                fact = getGoodParse(evalExpr());
-                if (match(TokenType.RPAREN, ")"))
-                    return new HeadNode(fact, getCurrLine());
-            }
-            return null;
-        }
-
-        // list tail built in function.
-        else if (checkMatch(TokenType.LST_TL)) {
-            if (match(TokenType.LPAREN, "(")) {
-                fact = getGoodParse(evalExpr());
-                if (match(TokenType.RPAREN, ")"))
-                    return new TailNode(fact, getCurrLine());
-            }
-            return null;
-        }
-
-        // Len built in fuction.
-        else if (checkMatch(TokenType.LEN)) {
-            if (match(TokenType.LPAREN, "(")) {
-                fact = getGoodParse(evalExpr());
-                if (match(TokenType.RPAREN, ")"))
-                    return new LenNode(fact, getCurrLine());
-            }
-            return null;
-        }
-    
-        // List constructor.
-        else if (checkMatch(TokenType.LBRACK))
-            return getGoodParse(evalListExpr());
-
-        // Parenthsized expression.
-        else if (checkMatch(TokenType.LPAREN)) { 
-            
-            fact = getGoodParse(evalExpr());
-            
-            // Force the right paren.
-            match(TokenType.RPAREN, ")");        
-        } 
-        
-
-        // Handle the literals.
-        else if (tokenIs(TokenType.INT) || tokenIs(TokenType.REAL) ||
-                   tokenIs(TokenType.TRUE) || tokenIs(TokenType.FALSE)) {
-                fact = new TokenNode(getCurrToken(), getCurrLine());
-                nextToken();        // advance the token stream.
-                return fact;
-        }
-
-        // Hand an identifer.
-        else if (tokenIs(TokenType.ID)) {
-            Token ident = getCurrToken(); // Store off the next token.
-            nextToken();    // advance the token stream.
-
-            // Just a run of the mill token.
-            fact = new TokenNode(ident, getCurrLine());
-        }
-            
-        trace("Exit <factor>");
-        return fact;
+    // Do we have a unary sub (i.e., a negative).
+    if (checkMatch(TokenType.SUB)) {
+      SyntaxNode expr = getGoodParse(evalFactor());
+      return new UnaryOpNode(expr, TokenType.SUB, getCurrLine());
     }
 
+    // list head built in function.
+    else if (checkMatch(TokenType.LST_HD)) {
+      if (match(TokenType.LPAREN, "(")) {
+        fact = getGoodParse(evalExpr());
+        if (match(TokenType.RPAREN, ")"))
+          return new HeadNode(fact, getCurrLine());
+      }
+      return null;
+    }
+
+    // list tail built in function.
+    else if (checkMatch(TokenType.LST_TL)) {
+      if (match(TokenType.LPAREN, "(")) {
+        fact = getGoodParse(evalExpr());
+        if (match(TokenType.RPAREN, ")"))
+          return new TailNode(fact, getCurrLine());
+      }
+      return null;
+    }
+
+    // Len built in fuction.
+    else if (checkMatch(TokenType.LEN)) {
+      if (match(TokenType.LPAREN, "(")) {
+        fact = getGoodParse(evalExpr());
+        if (match(TokenType.RPAREN, ")"))
+          return new LenNode(fact, getCurrLine());
+      }
+      return null;
+    }
+
+    // List constructor.
+    else if (checkMatch(TokenType.LBRACK))
+      return getGoodParse(evalListExpr());
+
+    // Parenthsized expression.
+    else if (checkMatch(TokenType.LPAREN)) {
+
+      fact = getGoodParse(evalExpr());
+
+      // Force the right paren.
+      match(TokenType.RPAREN, ")");
+    }
+
+    // Handle the literals.
+    else if (tokenIs(TokenType.INT) || tokenIs(TokenType.REAL) ||
+        tokenIs(TokenType.TRUE) || tokenIs(TokenType.FALSE)) {
+      fact = new TokenNode(getCurrToken(), getCurrLine());
+      nextToken(); // advance the token stream.
+      return fact;
+    }
+
+    // Hand an identifer.
+    else if (tokenIs(TokenType.ID)) {
+      Token ident = getCurrToken(); // Store off the next token.
+      nextToken(); // advance the token stream.
+
+      // Just a run of the mill token.
+      fact = new TokenNode(ident, getCurrLine());
+    }
+
+    trace("Exit <factor>");
+    return fact;
+  }
 
   /***********
    *
@@ -365,41 +366,42 @@ public class MFLParser extends Parser {
    * 
    ***********/
 
-   /**
-     * Method to handle the listExpr non-terminal. <listExpr> -> [ <expr> {,
-     * <expr>} ]
-     * @throws ParseException when parsing fails.
-     */
-    private SyntaxNode evalListExpr() throws ParseException {
-        LinkedList<SyntaxNode> entries = new LinkedList<>();
-        ListNode lst = null;
-        SyntaxNode expr = null;
+  /**
+   * Method to handle the listExpr non-terminal. <listExpr> -> [ <expr> {,
+   * <expr>} ]
+   * 
+   * @throws ParseException when parsing fails.
+   */
+  private SyntaxNode evalListExpr() throws ParseException {
+    LinkedList<SyntaxNode> entries = new LinkedList<>();
+    ListNode lst = null;
+    SyntaxNode expr = null;
 
-        trace("Enter <listExpr>");
+    trace("Enter <listExpr>");
 
-        // We could have an empty list.
-        if (checkMatch(TokenType.RBRACK)) {
-            lst = new ListNode(entries, getCurrLine());
-            return lst;
-        }
-
-        // The list is not empty, let's add all of the expression 
-        // subtrees to it.
-        expr = getGoodParse(evalExpr());
-        entries.add(expr);
-
-        while (checkMatch(TokenType.COMMA)) {
-            expr = getGoodParse(evalExpr());
-            entries.add(expr);
-        }
-
-        // Handle the end of the list.
-        if (match(TokenType.RBRACK, "]"))
-            lst = new ListNode(entries, getCurrLine());
-
-        trace("Exit <listExpr>");
-        return lst;
+    // We could have an empty list.
+    if (checkMatch(TokenType.RBRACK)) {
+      lst = new ListNode(entries, getCurrLine());
+      return lst;
     }
+
+    // The list is not empty, let's add all of the expression
+    // subtrees to it.
+    expr = getGoodParse(evalExpr());
+    entries.add(expr);
+
+    while (checkMatch(TokenType.COMMA)) {
+      expr = getGoodParse(evalExpr());
+      entries.add(expr);
+    }
+
+    // Handle the end of the list.
+    if (match(TokenType.RBRACK, "]"))
+      lst = new ListNode(entries, getCurrLine());
+
+    trace("Exit <listExpr>");
+    return lst;
+  }
 
   /**
    * This method handles a value definition. <id> := <expr>
@@ -418,55 +420,73 @@ public class MFLParser extends Parser {
   }
 
   /**
-     * This method handles a let expression <id> := <expr> in <expr>
-     * @return a let node.
-     * @throws ParseException 
-     */
-    private SyntaxNode handleLet() throws ParseException {
-        Token var = getCurrToken();
-        SyntaxNode varExpr;
-        SyntaxNode expr;
+   * This method handles a let expression <id> := <expr> in <expr>
+   * 
+   * @return a let node.
+   * @throws ParseException
+   */
+  private SyntaxNode handleLet() throws ParseException {
+    Token var = getCurrToken();
+    SyntaxNode varExpr;
+    SyntaxNode expr;
 
-        trace("enter handleLet");
+    trace("enter handleLet");
 
-        // Handle the identifier.
-        match(TokenType.ID, "identifier");
-        
-        // Handle the assignemnt.
-        match(TokenType.ASSIGN, ":=");
-        varExpr = getGoodParse(evalExpr());
+    // Handle the identifier.
+    match(TokenType.ID, "identifier");
 
-        // Handle the in expr.
-        match(TokenType.IN, "in");
-        expr = getGoodParse(evalExpr());
+    // Handle the assignemnt.
+    match(TokenType.ASSIGN, ":=");
+    varExpr = getGoodParse(evalExpr());
 
-        return new LetNode(var, varExpr, expr, getCurrLine());
-    }
+    // Handle the in expr.
+    match(TokenType.IN, "in");
+    expr = getGoodParse(evalExpr());
 
-    /**
-     * This method handles an if expression if <expr> then <expr> else <expr>
-     * @return an if node.
-     * @throws ParseException 
-     */
-    private SyntaxNode handleIf() throws ParseException {
-        SyntaxNode cond;
-        SyntaxNode tBranch;
-        SyntaxNode fBranch;
+    return new LetNode(var, varExpr, expr, getCurrLine());
+  }
 
-        trace("enter handleIf");
+  /**
+   * This method handles an if expression if <expr> then <expr> else <expr>
+   * 
+   * @return an if node.
+   * @throws ParseException
+   */
+  private SyntaxNode handleIf() throws ParseException {
+    SyntaxNode cond;
+    SyntaxNode tBranch;
+    SyntaxNode fBranch;
 
-        // Handle the condition expression.
-        cond = getGoodParse(evalExpr());
+    trace("enter handleIf");
 
-        // Handle the then expression.
-        match(TokenType.THEN, "then");
-        tBranch = getGoodParse(evalExpr());
+    // Handle the condition expression.
+    cond = getGoodParse(evalExpr());
 
-        // Handle the else expression.
-        match(TokenType.ELSE, "else");
-        fBranch = getGoodParse(evalExpr());
+    // Handle the then expression.
+    match(TokenType.THEN, "then");
+    tBranch = getGoodParse(evalExpr());
 
-        return new IfNode(cond, tBranch, fBranch, getCurrLine());
-    }
+    // Handle the else expression.
+    match(TokenType.ELSE, "else");
+    fBranch = getGoodParse(evalExpr());
+
+    return new IfNode(cond, tBranch, fBranch, getCurrLine());
+  }
+
+  /**
+   * Handles lambda expressions:
+   * fn <id> -> <expr>
+   */
+  private SyntaxNode handleLambda() throws ParseException {
+    // We already consumed 'fn'
+    Token param = getCurrToken();
+    match(TokenType.ID, "identifier");
+
+    match(TokenType.ARROW, "->");
+
+    SyntaxNode body = getGoodParse(evalExpr());
+
+    return new LambdaNode(param, body, getCurrLine());
+  }
 
 }
