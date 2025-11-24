@@ -17,9 +17,11 @@
 package ast.nodes;
 
 import ast.EvaluationException;
+import ast.nodes.LambdaNode.FunType;
 import ast.typesystem.TypeException;
 import ast.typesystem.inferencer.Inferencer;
 import ast.typesystem.types.Type;
+import ast.typesystem.types.VarType;
 import environment.Environment;
 import environment.TypeEnvironment;
 import lexer.Token;
@@ -98,12 +100,32 @@ public final class ValNode extends SyntaxNode
      * @return The type of the syntax node.
      * @throws TypeException if there is a type error.
      */
-    public Type typeOf(TypeEnvironment tenv, Inferencer inferencer) throws TypeException
-    {   
-        Type valType = inferencer.getSubstitutions().apply(expr.typeOf(tenv, inferencer));
-        tenv.updateEnvironment(name, valType);
-        return valType;
+    @Override
+public Type typeOf(TypeEnvironment tenv, Inferencer inferencer)
+        throws TypeException
+{
+    // If the expression is a lambda, we need to set up a placeholder
+    if (expr instanceof LambdaNode) {
+        // Create fresh α and β
+        VarType t1 = tenv.getTypeVariable();
+        VarType t2 = tenv.getTypeVariable();
+
+        // Add name : t1 -> t2 to the environment BEFORE checking the body
+        tenv.updateEnvironment(name, new FunType(t1, t2));
     }
+
+    //  Now type-check the expression normally
+    Type valType = expr.typeOf(tenv, inferencer);
+
+    //  Apply substitutions (finalize)
+    valType = inferencer.getSubstitutions().apply(valType);
+
+    // Update environment with the final type (overwrites placeholder)
+    tenv.updateEnvironment(name, valType);
+
+    return valType;
+}
+
     
     /**
      * Display a AST inferencertree with the indentation specified.
