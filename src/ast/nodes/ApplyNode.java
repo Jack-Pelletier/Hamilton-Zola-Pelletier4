@@ -10,6 +10,7 @@ import ast.typesystem.types.VarType;
 import environment.Environment;
 import environment.TypeEnvironment;
 import lexer.Token;
+
 /**
  * Represents a function application (E1)(E2)
  */
@@ -36,7 +37,7 @@ public final class ApplyNode extends SyntaxNode {
         Object f = function.evaluate(env);
 
         if (!(f instanceof Closure))
-            throw new EvaluationException("Attempt to apply non-function at line " + getLine());
+            throw new EvaluationException();
 
         Closure closure = (Closure) f;
 
