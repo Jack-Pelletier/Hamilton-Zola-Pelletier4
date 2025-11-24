@@ -216,5 +216,14 @@ public enum TokenType
     /**
      * The end of the file token.
      */
-    EOF
+    EOF,
+
+    /**
+     * Function arrow
+     */
+    ARROW, 
+    /**
+     * Function keyword
+     */
+    FN
 }
