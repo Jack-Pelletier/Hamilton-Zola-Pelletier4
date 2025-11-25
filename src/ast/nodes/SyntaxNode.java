@@ -106,4 +106,14 @@ public abstract class SyntaxNode
      * @param indentAmt the amout of indentation to perform.
      */
     public abstract void displaySubtree(int indentAmt);
+
+    public Type typeOf(TypeEnvironment tenv) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'typeOf'");
+    }
+
+    public void displaySubtree(StringBuilder sb, int indent) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'displaySubtree'");
+    }
 }
