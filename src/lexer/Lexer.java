@@ -1,10 +1,10 @@
 /*
  *   Copyright (C) 2022 -- 2025  Zachary A. Kissel
  *
- *   This program is free software: you can redistribute it and/or modify
+ *   This program is free software: you can redistribute it and or modify
  *   it under the terms of the GNU General Public License as published by
  *   the Free Software Foundation, either version 3 of the License, or
- *   (at your option) any later version.
+ *   at your option any later version.
  *
  *   This program is distributed in the hope that it will be useful,
  *   but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -70,7 +70,7 @@ public class Lexer
         {
 
             // The state where we are recognizing identifiers.
-            // Regex: [A-Za-Z][0-9a-zA-z]*
+            // Regex: [A Za Z][0 9a za z]*
             case LETTER:
                 value += stream.getCurrentChar();
                 stream.advance();      // advance the stream.
@@ -84,14 +84,14 @@ public class Lexer
                 }
                 stream.skipNextAdvance(); // The symbol just read is part of the next token.
 
-                // This could be an identifier or a token, if it's not in
+                // This could be an identifier or a token, if it is not in
                 // the keyword dictionary, it is an indentifier.
                 if (keywords.containsKey(value))
                     return new Token(keywords.get(value), value);
                 return new Token(TokenType.ID, value);
 
             // The state where we are recognizing digits.
-            // Regex: [0-9]+
+            // Regex: [0 9]+
             case DIGIT:
                 value += stream.getCurrentChar();
                 stream.advance();
@@ -269,9 +269,12 @@ public class Lexer
         keywords.put("then", TokenType.THEN);
         keywords.put("else", TokenType.ELSE);
         keywords.put("len", TokenType.LEN);
+        keywords.put("map", TokenType.MAP);
+        keywords.put("foldl", TokenType.FOLDL);
+        keywords.put("foldr", TokenType.FOLDR);
     }
 
-     /**
+    /**
      * This method consumes the comented out characters until the close comment
      * character is found.
      */
