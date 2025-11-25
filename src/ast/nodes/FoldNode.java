@@ -1,24 +1,24 @@
 package ast.nodes;
 
-import ast.EvaluationException;
-import ast.typesystem.TypeException;
-import ast.typesystem.inferencer.Inferencer;
-import ast.typesystem.types.Type;
 import environment.Environment;
 import environment.TypeEnvironment;
 
 /**
- * Base implementation of FoldNode (foldl and foldr) for Phase 3.
- * This file currently contains only structure and stubs.
+ * Base implementation of FoldNode for Phase 3.
+ * Handles both foldl and foldr based on the left flag.
  */
 public class FoldNode extends SyntaxNode
 {
     private SyntaxNode func;
     private SyntaxNode init;
     private SyntaxNode listExpr;
-    private boolean left; // true = foldl, false = foldr
+    private boolean left; // true for foldl, false for foldr
 
-    public FoldNode(SyntaxNode func, SyntaxNode init, SyntaxNode listExpr, boolean left, int lineNumber)
+    public FoldNode(SyntaxNode func,
+                    SyntaxNode init,
+                    SyntaxNode listExpr,
+                    boolean left,
+                    int lineNumber)
     {
         super(lineNumber);
         this.func = func;
@@ -28,14 +28,16 @@ public class FoldNode extends SyntaxNode
     }
 
     @Override
-    public Object evaluate(Environment env) throws EvaluationException
+    public Object evaluate(Environment env)
     {
+        // TODO: Implement full evaluation logic
         throw new UnsupportedOperationException("FoldNode.evaluate not implemented yet.");
     }
 
     @Override
     public Type typeOf(TypeEnvironment tenv)
     {
+        // TODO: Implement full type checking logic
         throw new UnsupportedOperationException("FoldNode.typeOf not implemented yet.");
     }
 
@@ -56,22 +58,5 @@ public class FoldNode extends SyntaxNode
         indent(sb, indent + 1);
         sb.append("List:\n");
         listExpr.displaySubtree(sb, indent + 2);
-    }
-
-    private void indent(StringBuilder sb, int indent) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'indent'");
-    }
-
-    @Override
-    public Type typeOf(TypeEnvironment tenv, Inferencer inferencer) throws TypeException {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'typeOf'");
-    }
-
-    @Override
-    public void displaySubtree(int indentAmt) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'displaySubtree'");
     }
 }
