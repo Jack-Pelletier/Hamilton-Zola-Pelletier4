@@ -132,7 +132,7 @@ public enum TokenType
     FALSE,
 
     /**
-     * Indicates a comment -- just to simplify the token processing.
+     * Indicates a comment just to simplify the token processing.
      */
     COMMENT,
 
@@ -171,7 +171,7 @@ public enum TokenType
      */
     RBRACK,
 
-     /**
+    /**
      * List concatenation
      */
     CONCAT,
@@ -196,12 +196,25 @@ public enum TokenType
      */
     LEN,
 
+    /**
+     * Map over a list.
+     */
+    MAP,
+
+    /**
+     * Left fold over a list.
+     */
+    FOLDL,
+
+    /**
+     * Right fold over a list.
+     */
+    FOLDR,
 
     /**
      * If Statement.
      */
     IF,
-
 
     /**
      * Then Statement.
