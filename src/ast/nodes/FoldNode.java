@@ -1,6 +1,6 @@
-package ast;
+package ast.nodes;
 
-import ast.nodes.SyntaxNode;
+import ast.EvaluationException;
 import ast.typesystem.TypeException;
 import ast.typesystem.inferencer.Inferencer;
 import ast.typesystem.types.Type;
@@ -28,7 +28,7 @@ public class FoldNode extends SyntaxNode
     }
 
     @Override
-    public Object evaluate(Environment env)
+    public Object evaluate(Environment env) throws EvaluationException
     {
         throw new UnsupportedOperationException("FoldNode.evaluate not implemented yet.");
     }
