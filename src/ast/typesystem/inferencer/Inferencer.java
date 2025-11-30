@@ -23,6 +23,7 @@ import ast.typesystem.types.ListType;
 import ast.typesystem.types.RealType;
 import ast.typesystem.types.Type;
 import ast.typesystem.types.VarType;
+import ast.typesystem.types.FunType;
 
 /**
  * Represents the core type infrencer. It amasses a set of type equations and
@@ -32,16 +33,14 @@ import ast.typesystem.types.VarType;
  * 
  * @author Zach Kissel
  */
-public class Inferencer
-{
+public class Inferencer {
     private Substitutions subst; // The current type equation
-                                          // solutions.
-    
+                                 // solutions.
+
     /**
      * The default constructor builds a new type substitution.
      */
-    public Inferencer()
-    {
+    public Inferencer() {
         subst = new Substitutions();
     }
 
@@ -51,17 +50,16 @@ public class Inferencer
      * @return A string representation of the known substitutions.
      */
     @Override
-    public String toString()
-    {
+    public String toString() {
         return subst.toString();
     }
 
     /**
      * Get the substitution map from the inferencer.
+     * 
      * @return the substition map of the inferencer.
      */
-    public Substitutions getSubstitutions()
-    {
+    public Substitutions getSubstitutions() {
         return subst;
     }
 
@@ -109,16 +107,21 @@ public class Inferencer
                 throw new TypeException("Unifcation error: " + msg);
         }
 
-        // Unify list types.
-        else if (type1 instanceof ListType && type2 instanceof ListType)
-        {
-            unify(((ListType) type1).getElementType(),
-                    ((ListType) type2).getElementType(), msg);
-        }
+       // ⭐ FUNCTION TYPE UNIFICATION ⭐
+            else if (type1 instanceof FunType && type2 instanceof FunType)
+                {
+                    FunType f1 = (FunType) type1;
+                    FunType f2 = (FunType) type2;
 
-        else
-            throw new TypeException("Unification failed: " + msg);
-    }
+            // unify parameter types
+                unify(f1.getParamType(), f2.getParamType(), msg);
+
+            // unify return types
+                unify(f1.getReturnType(), f2.getReturnType(), msg);
+
+                 return;
+                }
+            }
 
     /**
      * Makes sure that tv does not appear in ty. This is used by unification to
@@ -129,17 +132,13 @@ public class Inferencer
      * @param ty the type we want it bound to.
      * @return true if tv does not appear in ty.
      */
-    private boolean noOccurrence(VarType tv, Type ty)
-    {
+    private boolean noOccurrence(VarType tv, Type ty) {
         if (ty instanceof IntType || ty instanceof RealType
                 || ty instanceof BoolType)
             return true;
-        else if (ty instanceof VarType)
-        {
+        else if (ty instanceof VarType) {
             return !tv.equals((VarType) ty);
-        }
-        else if (ty instanceof ListType)
-        {
+        } else if (ty instanceof ListType) {
             return noOccurrence(tv, ((ListType) ty).getElementType());
         }
 
