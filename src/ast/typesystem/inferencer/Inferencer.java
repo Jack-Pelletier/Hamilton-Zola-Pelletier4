@@ -107,7 +107,7 @@ public class Inferencer {
                 throw new TypeException("Unifcation error: " + msg);
         }
 
-       // ⭐ FUNCTION TYPE UNIFICATION ⭐
+       // Handle list types.
             else if (type1 instanceof FunType && type2 instanceof FunType)
                 {
                     FunType f1 = (FunType) type1;
@@ -140,6 +140,13 @@ public class Inferencer {
             return !tv.equals((VarType) ty);
         } else if (ty instanceof ListType) {
             return noOccurrence(tv, ((ListType) ty).getElementType());
+        }
+        // Handle function types
+        else if (ty instanceof FunType)
+        {
+            FunType f = (FunType) ty;
+            return noOccurrence(tv, f.getParamType())
+                && noOccurrence(tv, f.getReturnType());
         }
 
         return false;
