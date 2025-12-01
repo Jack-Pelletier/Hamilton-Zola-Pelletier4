@@ -30,8 +30,8 @@ import environment.Environment;
 import environment.TypeEnvironment;
 
 /**
- * MapNode for Phase 3.
- * Represents: map f xs
+ * this is MapNode for Phase 3.
+ * this is Represents: map f xs
  */
 public class MapNode extends SyntaxNode
 {
@@ -46,13 +46,13 @@ public class MapNode extends SyntaxNode
     }
 
     /**
-     * Runtime semantics:
-     *   map f [x1, x2, ..., xn]  ==>  [f x1, f x2, ..., f xn]
+     * this is the runtime semantics:
+     * this is   map f [x1, x2, ..., xn]  ==>  [f x1, f x2, ..., f xn]
      */
     @Override
     public Object evaluate(Environment env) throws EvaluationException
     {
-        // Evaluate the function expression
+        // this is where we evaluate the function expression
         Object fVal = func.evaluate(env);
         if (!(fVal instanceof Closure))
         {
@@ -62,7 +62,7 @@ public class MapNode extends SyntaxNode
 
         Closure clo = (Closure) fVal;
 
-        // Evaluate the list expression
+        // this is where we evaluate the list expression
         Object listVal = listExpr.evaluate(env);
         if (!(listVal instanceof LinkedList<?>))
         {
@@ -73,7 +73,7 @@ public class MapNode extends SyntaxNode
         LinkedList<?> inputList = (LinkedList<?>) listVal;
         LinkedList<Object> result = new LinkedList<>();
 
-        // For each element x in the list, evaluate f x using the closure env
+        // this is where for each element x in the list we evaluate f x using the closure env
         for (Object elem : inputList)
         {
             Environment newEnv = clo.getEnvironment().copy();
@@ -86,36 +86,36 @@ public class MapNode extends SyntaxNode
     }
 
     /**
-     * Typing rule (informally):
+     * this is the typing rule (informally):
      *
-     *   f   : a -> b
-     *   xs  : list[a]
-     *   ----------------
-     *   map f xs : list[b]
+     * this is   f   : a -> b
+     * this is   xs  : list[a]
+     * this is   ----------------
+     * this is   map f xs : list[b]
      */
     @Override
     public Type typeOf(TypeEnvironment tenv, Inferencer inferencer)
             throws TypeException
     {
-        // Types of subexpressions
+        // this is where we get the types of the subexpressions
         Type fType  = func.typeOf(tenv, inferencer);
         Type xsType = listExpr.typeOf(tenv, inferencer);
 
-        // Fresh type variables a, b
+        // this is where we create fresh type variables a, b
         VarType a = tenv.getTypeVariable();
         VarType b = tenv.getTypeVariable();
 
-        // xs : list[a]
+        // this is enforcing xs : list[a]
         ListType expectedList = new ListType(a);
         inferencer.unify(xsType, expectedList,
                 buildErrorMessage("map: second argument must be a list."));
 
-        // f : a -> b   (using LambdaNode.FunType)
+        // this is enforcing f : a -> b   (using LambdaNode.FunType)
         FunType expectedFun = new FunType(a, b);
         inferencer.unify(fType, expectedFun,
                 buildErrorMessage("map: first argument must be a function from element type to result type."));
 
-        // Result type is list[b] with substitutions applied
+        // this is where we return the result type list[b] with substitutions applied
         Type finalB = inferencer.getSubstitutions().apply(b);
         return new ListType(finalB);
     }
@@ -123,6 +123,7 @@ public class MapNode extends SyntaxNode
     @Override
     public void displaySubtree(int indentAmt)
     {
+        // this is where we print the subtree for MapNode
         printIndented("MapNode(", indentAmt);
         func.displaySubtree(indentAmt + 2);
         listExpr.displaySubtree(indentAmt + 2);
