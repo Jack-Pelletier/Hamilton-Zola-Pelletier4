@@ -27,13 +27,20 @@ import environment.TypeEnvironment;
 import lexer.Token;
 
 /**
- * this is the node representing a lambda (fn x -> e).
+ * This node represents a lambda (fn) expression.
  */
 public final class LambdaNode extends SyntaxNode
 {
-    private Token variable;   // this is the formal parameter
-    private SyntaxNode body;  // this is the function body
+    private Token variable;        // parameter
+    private SyntaxNode body;       // function body
 
+    /**
+     * Constructs a new lambda node.
+     *
+     * @param variable the parameter of the lambda.
+     * @param body     the body of the lambda.
+     * @param line     the line of code the node is associated with.
+     */
     public LambdaNode(Token variable, SyntaxNode body, long line)
     {
         super(line);
@@ -42,7 +49,7 @@ public final class LambdaNode extends SyntaxNode
     }
 
     /**
-     * this is where we evaluate a lambda by producing a closure.
+     * Evaluate the node: produce a closure that remembers the current env.
      */
     @Override
     public Object evaluate(Environment env) throws EvaluationException
@@ -52,27 +59,27 @@ public final class LambdaNode extends SyntaxNode
     }
 
     /**
-     * this is where we compute the type (a -> b) for fn x -> body.
+     * Type of a lambda: (paramType -> bodyType).
      */
     @Override
     public Type typeOf(TypeEnvironment tenv, Inferencer inferencer)
             throws TypeException
     {
-        // this is a fresh type variable for the parameter
+        // Fresh type var for the parameter
         VarType paramType = tenv.getTypeVariable();
 
-        // this is the extended environment with x : paramType
+        // Extended environment with parameter binding
         TypeEnvironment newTenv = tenv.copy();
         newTenv.updateEnvironment(variable, paramType);
 
-        // this is the type of the body under that environment
+        // Type of body under extended env
         Type bodyType = body.typeOf(newTenv, inferencer);
 
-        // this is where we apply substitutions to both pieces
+        // Apply any accumulated substitutions
         Type finalParamType = inferencer.getSubstitutions().apply(paramType);
         Type finalBodyType  = inferencer.getSubstitutions().apply(bodyType);
 
-        // this is the function type a -> b
+        // Return function type paramType -> bodyType
         return new FunType(finalParamType, finalBodyType);
     }
 
@@ -87,7 +94,7 @@ public final class LambdaNode extends SyntaxNode
     }
 
     /**
-     * this is the runtime closure for a lambda.
+     * Runtime closure value for a lambda.
      */
     public static final class Closure
     {
@@ -102,14 +109,25 @@ public final class LambdaNode extends SyntaxNode
             this.env = env;
         }
 
-        public Token getParameter()   { return parameter; }
-        public SyntaxNode getBody()   { return body; }
-        public Environment getEnvironment() { return env; }
+        public Token getParameter()
+        {
+            return parameter;
+        }
+
+        public SyntaxNode getBody()
+        {
+            return body;
+        }
+
+        public Environment getEnvironment()
+        {
+            return env;
+        }
 
         @Override
         public String toString()
         {
-            return "<closure " + parameter.getValue() + " -> ...>";
+            return "<closure " + parameter.getValue() + " -> ... >";
         }
     }
 }
