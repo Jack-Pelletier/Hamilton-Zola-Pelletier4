@@ -30,75 +30,82 @@ import environment.Environment;
 import environment.TypeEnvironment;
 
 /**
- * Represents foldl / foldr.
- *   foldl(f, init, [x1,...,xn])
- *   foldr(f, init, [x1,...,xn])
+ * This is the FoldNode for Phase 3.
+ * This is: foldl / foldr f init xs
+ *
+ * If rightFold is true, we do a right fold (foldr).
+ * If rightFold is false, we do a left fold (foldl).
  */
 public class FoldNode extends SyntaxNode
 {
-    private SyntaxNode func;
-    private SyntaxNode initExpr;
-    private SyntaxNode listExpr;
-    private boolean isLeft;   // true = foldl, false = foldr
+    private final SyntaxNode func;
+    private final SyntaxNode init;
+    private final SyntaxNode listExpr;
+    private final boolean    rightFold;
 
-    public FoldNode(SyntaxNode func, SyntaxNode initExpr,
-                    SyntaxNode listExpr, boolean isLeft, long lineNumber)
+    public FoldNode(SyntaxNode func, SyntaxNode init, SyntaxNode listExpr,
+                    boolean rightFold, long lineNumber)
     {
         super(lineNumber);
-        this.func = func;
-        this.initExpr = initExpr;
-        this.listExpr = listExpr;
-        this.isLeft = isLeft;
+        this.func      = func;
+        this.init      = init;
+        this.listExpr  = listExpr;
+        this.rightFold = rightFold;
     }
 
+    /**
+     * This is the runtime semantics:
+     *
+     * For a left fold (foldl):
+     *   foldl f acc [x1, x2, ..., xn]
+     *   ==> f (... (f (f acc x1) x2) ...) xn
+     *
+     * For a right fold (foldr):
+     *   foldr f acc [x1, x2, ..., xn]
+     *   ==> f x1 (f x2 (... (f xn acc)...))
+     *
+     * The function f is curried and takes two arguments.
+     */
     @Override
     public Object evaluate(Environment env) throws EvaluationException
     {
+        // This is where we evaluate the function expression
         Object fVal = func.evaluate(env);
         if (!(fVal instanceof Closure))
         {
             logError("fold: first argument must be a function.");
             throw new EvaluationException();
         }
-        Closure f = (Closure) fVal;
+        Closure fClosure = (Closure) fVal;
 
-        Object acc = initExpr.evaluate(env);
+        // This is where we evaluate the initial accumulator
+        Object acc = init.evaluate(env);
 
+        // This is where we evaluate the list expression
         Object listVal = listExpr.evaluate(env);
         if (!(listVal instanceof LinkedList<?>))
         {
             logError("fold: third argument must be a list.");
             throw new EvaluationException();
         }
-        LinkedList<?> input = (LinkedList<?>) listVal;
 
-        if (isLeft)
+        LinkedList<?> xs = (LinkedList<?>) listVal;
+
+        if (rightFold)
         {
-            // foldl: (((init f x1) f x2) ... f xn)
-            for (Object elem : input)
+            // This is the right fold case (foldr)
+            for (int i = xs.size() - 1; i >= 0; i--)
             {
-                Object tmp = applyClosure(f, acc);
-                if (!(tmp instanceof Closure))
-                {
-                    logError("foldl: function must take two arguments (curried).");
-                    throw new EvaluationException();
-                }
-                acc = applyClosure((Closure) tmp, elem);
+                Object elem = xs.get(i);
+                acc = applyTwoArgs(fClosure, elem, acc);
             }
         }
         else
         {
-            // foldr: (x1 f (x2 f (... (xn f init)...)))
-            for (int i = input.size() - 1; i >= 0; i--)
+            // This is the left fold case (foldl)
+            for (Object elem : xs)
             {
-                Object elem = input.get(i);
-                Object tmp = applyClosure(f, elem);
-                if (!(tmp instanceof Closure))
-                {
-                    logError("foldr: function must take two arguments (curried).");
-                    throw new EvaluationException();
-                }
-                acc = applyClosure((Closure) tmp, acc);
+                acc = applyTwoArgs(fClosure, acc, elem);
             }
         }
 
@@ -106,9 +113,33 @@ public class FoldNode extends SyntaxNode
     }
 
     /**
-     * Helper to apply a closure to one argument.
+     * This is a helper that applies a curried function to two arguments:
+     *
+     *   ((f arg1) arg2)
      */
-    private Object applyClosure(Closure clo, Object arg) throws EvaluationException
+    private Object applyTwoArgs(Closure fClosure, Object arg1, Object arg2)
+            throws EvaluationException
+    {
+        // This is: first application f arg1
+        Object first = applyClosure(fClosure, arg1);
+
+        if (!(first instanceof Closure))
+        {
+            logError("fold: function must take two arguments (curried).");
+            throw new EvaluationException();
+        }
+
+        Closure secondClosure = (Closure) first;
+
+        // This is: second application (f arg1) arg2
+        return applyClosure(secondClosure, arg2);
+    }
+
+    /**
+     * This is a helper that applies a single closure to one argument.
+     */
+    private Object applyClosure(Closure clo, Object arg)
+            throws EvaluationException
     {
         Environment newEnv = clo.getEnvironment().copy();
         newEnv.updateEnvironment(clo.getParameter(), arg);
@@ -116,74 +147,52 @@ public class FoldNode extends SyntaxNode
     }
 
     /**
-     * Typing rules (informal):
+     * This is the typing rule (informally):
      *
-     * foldl:
-     *   f   : a -> b -> a
-     *   init: a
-     *   xs  : list[b]
-     *   ----------------
-     *   foldl f init xs : a
-     *
-     * foldr:
-     *   f   : a -> b -> b
+     *   f   : a -> b -> b     (curried function)
      *   init: b
      *   xs  : list[a]
      *   ----------------
-     *   foldr f init xs : b
+     *   fold f init xs : b
      */
     @Override
     public Type typeOf(TypeEnvironment tenv, Inferencer inferencer)
             throws TypeException
     {
+        // This is where we get the types of the subexpressions
         Type fType   = func.typeOf(tenv, inferencer);
-        Type initType = initExpr.typeOf(tenv, inferencer);
-        Type xsType   = listExpr.typeOf(tenv, inferencer);
+        Type initTy  = init.typeOf(tenv, inferencer);
+        Type xsType  = listExpr.typeOf(tenv, inferencer);
 
-        if (isLeft)
-        {
-            // foldl: (a -> b -> a), init : a, xs : list[b]
-            VarType a = tenv.getTypeVariable();
-            VarType b = tenv.getTypeVariable();
+        // This is where we create fresh type variables a, b
+        VarType a = tenv.getTypeVariable();
+        VarType b = tenv.getTypeVariable();
 
-            inferencer.unify(initType, a,
-                    buildErrorMessage("foldl: init value has wrong type."));
+        // This is enforcing xs : list[a]
+        ListType expectedList = new ListType(a);
+        inferencer.unify(xsType, expectedList,
+                buildErrorMessage("fold: third argument must be a list."));
 
-            inferencer.unify(xsType, new ListType(b),
-                    buildErrorMessage("foldl: third argument must be a list."));
+        // This is enforcing init : b
+        inferencer.unify(initTy, b,
+                buildErrorMessage("fold: initial value has wrong type."));
 
-            FunType expectedFun = new FunType(a, new FunType(b, a));
-            inferencer.unify(fType, expectedFun,
-                    buildErrorMessage("foldl: function must have type a -> b -> a."));
+        // This is enforcing f : a -> b -> b  (curried)
+        FunType expectedFun = new FunType(a, new FunType(b, b));
+        inferencer.unify(fType, expectedFun,
+                buildErrorMessage("fold: function must have type a -> b -> b."));
 
-            return inferencer.getSubstitutions().apply(a);
-        }
-        else
-        {
-            // foldr: (a -> b -> b), init : b, xs : list[a]
-            VarType a = tenv.getTypeVariable();
-            VarType b = tenv.getTypeVariable();
-
-            inferencer.unify(xsType, new ListType(a),
-                    buildErrorMessage("foldr: third argument must be a list."));
-
-            inferencer.unify(initType, b,
-                    buildErrorMessage("foldr: init value has wrong type."));
-
-            FunType expectedFun = new FunType(a, new FunType(b, b));
-            inferencer.unify(fType, expectedFun,
-                    buildErrorMessage("foldr: function must have type a -> b -> b."));
-
-            return inferencer.getSubstitutions().apply(b);
-        }
+        // This is where we return the result type b with substitutions applied
+        Type finalB = inferencer.getSubstitutions().apply(b);
+        return finalB;
     }
 
     @Override
     public void displaySubtree(int indentAmt)
     {
-        printIndented(isLeft ? "FoldNode(foldl" : "FoldNode(foldr", indentAmt);
+        printIndented("FoldNode(" + (rightFold ? "foldr" : "foldl") + ",", indentAmt);
         func.displaySubtree(indentAmt + 2);
-        initExpr.displaySubtree(indentAmt + 2);
+        init.displaySubtree(indentAmt + 2);
         listExpr.displaySubtree(indentAmt + 2);
         printIndented(")", indentAmt);
     }
