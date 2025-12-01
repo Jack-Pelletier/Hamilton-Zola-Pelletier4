@@ -31,8 +31,8 @@ import lexer.Token;
  */
 public final class LambdaNode extends SyntaxNode
 {
-    private Token variable;        // parameter
-    private SyntaxNode body;       // function body
+    private final Token      variable; // parameter
+    private final SyntaxNode body;     // function body
 
     /**
      * Constructs a new lambda node.
@@ -65,17 +65,17 @@ public final class LambdaNode extends SyntaxNode
     public Type typeOf(TypeEnvironment tenv, Inferencer inferencer)
             throws TypeException
     {
-        // Fresh type var for the parameter
+        // Fresh type variable for the parameter
         VarType paramType = tenv.getTypeVariable();
 
         // Extended environment with parameter binding
         TypeEnvironment newTenv = tenv.copy();
         newTenv.updateEnvironment(variable, paramType);
 
-        // Type of body under extended env
+        // Type of the body under the extended environment
         Type bodyType = body.typeOf(newTenv, inferencer);
 
-        // Apply any accumulated substitutions
+        // Apply accumulated substitutions
         Type finalParamType = inferencer.getSubstitutions().apply(paramType);
         Type finalBodyType  = inferencer.getSubstitutions().apply(bodyType);
 
@@ -98,8 +98,8 @@ public final class LambdaNode extends SyntaxNode
      */
     public static final class Closure
     {
-        private final Token parameter;
-        private final SyntaxNode body;
+        private final Token       parameter;
+        private final SyntaxNode  body;
         private final Environment env;
 
         public Closure(Token parameter, SyntaxNode body, Environment env)
