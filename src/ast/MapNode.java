@@ -1,18 +1,18 @@
 /*
- *   Copyright (C) 2022  2025  Zachary A. Kissel
+ *   Copyright (C) 2022 -- 2025  Zachary A. Kissel
  *
- *   This program is free software: you can redistribute it andor modify
+ *   This program is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
  *   the Free Software Foundation, either version 3 of the License, or
- *   any later version.
+ *   (at your option) any later version.
  *
  *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY without even the implied warranty of
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
  *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *   GNU General Public License for more details.
  *
  *   You should have received a copy of the GNU General Public License
- *   along with this program.  If not, see <httpswww.gnu.orglicenses>.
+ *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 package ast;
 
@@ -31,16 +31,13 @@ import environment.TypeEnvironment;
 
 /**
  * this is MapNode for Phase 3.
- * this is the node that represents map f xs
+ * this is Represents: map f xs
  */
 public class MapNode extends SyntaxNode
 {
     private SyntaxNode func;
     private SyntaxNode listExpr;
 
-    /**
-     * this is where we build a new MapNode with a function and a list expr
-     */
     public MapNode(SyntaxNode func, SyntaxNode listExpr, long lineNumber)
     {
         super(lineNumber);
@@ -49,8 +46,8 @@ public class MapNode extends SyntaxNode
     }
 
     /**
-     * this is the runtime semantics
-     * this is map f x1 x2  xn becomes a list of f x1 f x2  fn
+     * this is the runtime semantics:
+     * this is   map f [x1, x2, ..., xn]  ==>  [f x1, f x2, ..., f xn]
      */
     @Override
     public Object evaluate(Environment env) throws EvaluationException
@@ -59,7 +56,7 @@ public class MapNode extends SyntaxNode
         Object fVal = func.evaluate(env);
         if (!(fVal instanceof Closure))
         {
-            logError("map first argument must be a function");
+            logError("map: first argument must be a function.");
             throw new EvaluationException();
         }
 
@@ -67,17 +64,17 @@ public class MapNode extends SyntaxNode
 
         // this is where we evaluate the list expression
         Object listVal = listExpr.evaluate(env);
-        if (!(listVal instanceof LinkedList))
+        if (!(listVal instanceof LinkedList<?>))
         {
-            logError("map second argument must be a list");
+            logError("map: second argument must be a list.");
             throw new EvaluationException();
         }
 
-        LinkedList inputList = (LinkedList) listVal;
+        LinkedList<?> inputList = (LinkedList<?>) listVal;
         LinkedList<Object> result = new LinkedList<>();
 
-        // this is where for each element x in the list we apply f x
-        for (Object elem   inputList)
+        // this is where for each element x in the list we evaluate f x using the closure env
+        for (Object elem : inputList)
         {
             Environment newEnv = clo.getEnvironment().copy();
             newEnv.updateEnvironment(clo.getParameter(), elem);
@@ -89,10 +86,12 @@ public class MapNode extends SyntaxNode
     }
 
     /**
-     * this is the typing rule in words
+     * this is the typing rule (informally):
      *
-     * this is if f has type a to b and xs has type list of a
-     * this is then map f xs has type list of b
+     * this is   f   : a -> b
+     * this is   xs  : list[a]
+     * this is   ----------------
+     * this is   map f xs : list[b]
      */
     @Override
     public Type typeOf(TypeEnvironment tenv, Inferencer inferencer)
@@ -102,31 +101,29 @@ public class MapNode extends SyntaxNode
         Type fType  = func.typeOf(tenv, inferencer);
         Type xsType = listExpr.typeOf(tenv, inferencer);
 
-        // this is where we create fresh type variables a and b
+        // this is where we create fresh type variables a, b
         VarType a = tenv.getTypeVariable();
         VarType b = tenv.getTypeVariable();
 
-        // this is enforcing xs has type list of a
+        // this is enforcing xs : list[a]
         ListType expectedList = new ListType(a);
         inferencer.unify(xsType, expectedList,
-                buildErrorMessage("map second argument must be a list"));
+                buildErrorMessage("map: second argument must be a list."));
 
-        // this is enforcing f has type a to b using the shared FunType
+        // this is enforcing f : a -> b   (using LambdaNode.FunType)
         FunType expectedFun = new FunType(a, b);
         inferencer.unify(fType, expectedFun,
-                buildErrorMessage("map first argument must be a function from the element type to a result type"));
+                buildErrorMessage("map: first argument must be a function from element type to result type."));
 
-        // this is where we return the result type list of b with substitutions applied
+        // this is where we return the result type list[b] with substitutions applied
         Type finalB = inferencer.getSubstitutions().apply(b);
         return new ListType(finalB);
     }
 
-    /**
-     * this is where we print the subtree for debugging
-     */
     @Override
     public void displaySubtree(int indentAmt)
     {
+        // this is where we print the subtree for MapNode
         printIndented("MapNode(", indentAmt);
         func.displaySubtree(indentAmt + 2);
         listExpr.displaySubtree(indentAmt + 2);
