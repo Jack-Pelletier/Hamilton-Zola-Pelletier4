@@ -20,9 +20,14 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.LinkedList;
 
+import ast.FoldNode;
+import ast.MapNode;
 import ast.SyntaxTree;
+import ast.nodes.ApplyNode;
 import ast.nodes.BinOpNode;
 import ast.nodes.HeadNode;
+import ast.nodes.IfNode;
+import ast.nodes.LambdaNode;
 import ast.nodes.LenNode;
 import ast.nodes.LetNode;
 import ast.nodes.ListNode;
@@ -33,11 +38,9 @@ import ast.nodes.TailNode;
 import ast.nodes.TokenNode;
 import ast.nodes.UnaryOpNode;
 import ast.nodes.ValNode;
-import ast.nodes.IfNode;
-import ast.nodes.LambdaNode;
 import lexer.Lexer;
-import lexer.TokenType;
 import lexer.Token;
+import lexer.TokenType;
 
 /**
  * <p>
@@ -290,6 +293,35 @@ public class MFLParser extends Parser {
     trace("Enter <factor>");
     SyntaxNode fact = null;
 
+    // map(f lst)
+    if (checkMatch(TokenType.MAP)) {
+      match(TokenType.LPAREN, "(");
+      SyntaxNode func = getGoodParse(evalExpr());
+      SyntaxNode lst = getGoodParse(evalExpr());
+      match(TokenType.RPAREN, ")");
+      return new MapNode(func, lst, getCurrLine());
+    }
+
+    // foldl(f init lst)
+    if (checkMatch(TokenType.FOLDL)) {
+      match(TokenType.LPAREN, "(");
+      SyntaxNode func = getGoodParse(evalExpr());
+      SyntaxNode init = getGoodParse(evalExpr());
+      SyntaxNode lst = getGoodParse(evalExpr());
+      match(TokenType.RPAREN, ")");
+      return new FoldNode(func, init, lst, true, getCurrLine());
+    }
+
+    // foldr(f init lst)
+    if (checkMatch(TokenType.FOLDR)) {
+      match(TokenType.LPAREN, "(");
+      SyntaxNode func = getGoodParse(evalExpr());
+      SyntaxNode init = getGoodParse(evalExpr());
+      SyntaxNode lst = getGoodParse(evalExpr());
+      match(TokenType.RPAREN, ")");
+      return new FoldNode(func, init, lst, false, getCurrLine());
+    }
+
     // Do we have a unary sub (i.e., a negative).
     if (checkMatch(TokenType.SUB)) {
       SyntaxNode expr = getGoodParse(evalFactor());
@@ -330,13 +362,21 @@ public class MFLParser extends Parser {
     else if (checkMatch(TokenType.LBRACK))
       return getGoodParse(evalListExpr());
 
-    // Parenthsized expression.
+    // Parenthsized expression (and possible application)
     else if (checkMatch(TokenType.LPAREN)) {
 
       fact = getGoodParse(evalExpr());
 
       // Force the right paren.
       match(TokenType.RPAREN, ")");
+
+      // Handle (E1)(E2) application
+      while (tokenIs(TokenType.LPAREN)) {
+        match(TokenType.LPAREN, "(");
+        SyntaxNode arg = getGoodParse(evalExpr());
+        match(TokenType.RPAREN, ")");
+        fact = new ApplyNode(fact, arg, getCurrLine());
+      }
     }
 
     // Handle the literals.
@@ -347,13 +387,21 @@ public class MFLParser extends Parser {
       return fact;
     }
 
-    // Hand an identifer.
+    // Handle an identifer (and possible id(expr) application)
     else if (tokenIs(TokenType.ID)) {
       Token ident = getCurrToken(); // Store off the next token.
       nextToken(); // advance the token stream.
 
-      // Just a run of the mill token.
+      // base identifier node
       fact = new TokenNode(ident, getCurrLine());
+
+      // id(expr) application
+      if (tokenIs(TokenType.LPAREN)) {
+        match(TokenType.LPAREN, "(");
+        SyntaxNode arg = getGoodParse(evalExpr());
+        match(TokenType.RPAREN, ")");
+        fact = new ApplyNode(fact, arg, getCurrLine());
+      }
     }
 
     trace("Exit <factor>");
