@@ -1,5 +1,9 @@
 package ast.nodes;
 
+import ast.EvaluationException;
+import ast.typesystem.TypeException;
+import ast.typesystem.inferencer.Inferencer;
+import ast.typesystem.types.Type;
 import environment.Environment;
 import environment.TypeEnvironment;
 
@@ -28,35 +32,26 @@ public class FoldNode extends SyntaxNode
     }
 
     @Override
-    public Object evaluate(Environment env)
+    public Object evaluate(Environment env) throws EvaluationException
     {
         // TODO: Implement full evaluation logic
         throw new UnsupportedOperationException("FoldNode.evaluate not implemented yet.");
     }
 
     @Override
-    public Type typeOf(TypeEnvironment tenv)
+    public Type typeOf(TypeEnvironment tenv, Inferencer inferencer) throws TypeException
     {
         // TODO: Implement full type checking logic
         throw new UnsupportedOperationException("FoldNode.typeOf not implemented yet.");
     }
 
     @Override
-    public void displaySubtree(StringBuilder sb, int indent)
+    public void displaySubtree(int indentAmt)
     {
-        indent(sb, indent);
-        sb.append(left ? "FoldLNode\n" : "FoldRNode\n");
-
-        indent(sb, indent + 1);
-        sb.append("Function:\n");
-        func.displaySubtree(sb, indent + 2);
-
-        indent(sb, indent + 1);
-        sb.append("Init:\n");
-        init.displaySubtree(sb, indent + 2);
-
-        indent(sb, indent + 1);
-        sb.append("List:\n");
-        listExpr.displaySubtree(sb, indent + 2);
+        printIndented(left ? "FoldLNode(" : "FoldRNode(", indentAmt);
+        func.displaySubtree(indentAmt + 2);
+        init.displaySubtree(indentAmt + 2);
+        listExpr.displaySubtree(indentAmt + 2);
+        printIndented(")", indentAmt);
     }
 }

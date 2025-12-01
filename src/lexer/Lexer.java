@@ -191,7 +191,14 @@ public class Lexer
                 return new Token(TokenType.ADD, "+");
             }
         case '-':
-            return new Token(TokenType.SUB, "-");
+            stream.advance();
+            if (stream.getCurrentChar() == '>')
+                return new Token(TokenType.ARROW, "->");
+            else
+            {
+                stream.skipNextAdvance(); // Character is part of a different token.
+                return new Token(TokenType.SUB, "-");
+            }
         case '*':
             return new Token(TokenType.MULT, "*");
         case '/':
@@ -214,7 +221,7 @@ public class Lexer
             return new Token(TokenType.EQ, "=");
         case '!':
             stream.advance();
-            if (stream.getCurrentChar() == '=')
+            if (stream.getCurrentChar() == '!')
                 return new Token(TokenType.NEQ, "!=");
             else
             {
@@ -272,6 +279,7 @@ public class Lexer
         keywords.put("map", TokenType.MAP);
         keywords.put("foldl", TokenType.FOLDL);
         keywords.put("foldr", TokenType.FOLDR);
+        keywords.put("fn", TokenType.FN);
     }
 
     /**

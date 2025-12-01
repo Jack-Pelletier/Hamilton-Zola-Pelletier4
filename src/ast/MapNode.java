@@ -8,8 +8,8 @@ import environment.Environment;
 import environment.TypeEnvironment;
 
 /**
- * Base implementation of MapNode for Phase 3.
- * This file currently contains only structure and stubs.
+ * MapNode for Phase 3.
+ * Represents: map f xs
  */
 public class MapNode extends SyntaxNode
 {
@@ -31,41 +31,18 @@ public class MapNode extends SyntaxNode
     }
 
     @Override
-    public Type typeOf(TypeEnvironment tenv)
+    public Type typeOf(TypeEnvironment tenv, Inferencer inferencer) throws TypeException
     {
         // TODO: Implement full type checking logic
         throw new UnsupportedOperationException("MapNode.typeOf not implemented yet.");
     }
 
     @Override
-    public void displaySubtree(StringBuilder sb, int indent)
+    public void displaySubtree(int indentAmt)
     {
-        indent(sb, indent);
-        sb.append("MapNode\n");
-
-        indent(sb, indent + 1);
-        sb.append("Function:\n");
-        func.displaySubtree(sb, indent + 2);
-
-        indent(sb, indent + 1);
-        sb.append("List:\n");
-        listExpr.displaySubtree(sb, indent + 2);
-    }
-
-    private void indent(StringBuilder sb, int indent) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'indent'");
-    }
-
-    @Override
-    public Type typeOf(TypeEnvironment tenv, Inferencer inferencer) throws TypeException {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'typeOf'");
-    }
-
-    @Override
-    public void displaySubtree(int indentAmt) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'displaySubtree'");
+        printIndented("MapNode(", indentAmt);
+        func.displaySubtree(indentAmt + 2);
+        listExpr.displaySubtree(indentAmt + 2);
+        printIndented(")", indentAmt);
     }
 }
