@@ -17,9 +17,9 @@
 package ast.nodes;
 
 import ast.EvaluationException;
-import ast.nodes.LambdaNode.FunType;
 import ast.typesystem.TypeException;
 import ast.typesystem.inferencer.Inferencer;
+import ast.typesystem.types.FunType;
 import ast.typesystem.types.Type;
 import ast.typesystem.types.VarType;
 import environment.Environment;
