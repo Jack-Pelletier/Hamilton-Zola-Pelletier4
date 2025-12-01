@@ -27,7 +27,7 @@ import environment.Environment;
 import environment.TypeEnvironment;
 
 /**
- * this is the node for function application (E1)(E2) or id(expr).
+ * Represents a function application: (E1)(E2)
  */
 public final class ApplyNode extends SyntaxNode
 {
@@ -41,9 +41,6 @@ public final class ApplyNode extends SyntaxNode
         this.argument = argument;
     }
 
-    /**
-     * this is where we evaluate application using closures.
-     */
     @Override
     public Object evaluate(Environment env) throws EvaluationException
     {
@@ -54,22 +51,23 @@ public final class ApplyNode extends SyntaxNode
 
         Closure closure = (Closure) f;
 
+        // Evaluate argument
         Object argVal = argument.evaluate(env);
 
+        // New env from closure
         Environment newEnv = closure.getEnvironment().copy();
         newEnv.updateEnvironment(closure.getParameter(), argVal);
 
+        // Evaluate body in closure environment
         return closure.getBody().evaluate(newEnv);
     }
 
     /**
-     * this is where we infer the type of (E1)(E2):
-     *
-     *   funType = typeOf(E1)
-     *   argType = typeOf(E2)
-     *   α       = fresh type variable
-     *   unify funType with (argType -> α)
-     *   result type = applySubst(α)
+     * Typing rule:
+     *   function : argType -> resultType
+     *   argument : argType
+     *   --------------------------------
+     *   (function)(argument) : resultType
      */
     @Override
     public Type typeOf(TypeEnvironment tenv, Inferencer inferencer)
@@ -78,12 +76,16 @@ public final class ApplyNode extends SyntaxNode
         Type funType = function.typeOf(tenv, inferencer);
         Type argType = argument.typeOf(tenv, inferencer);
 
+        // fresh result type α
         VarType resultType = tenv.getTypeVariable();
 
+        // Expected: argType -> α
         FunType expected = new FunType(argType, resultType);
-        inferencer.unify(funType, expected,
-                buildErrorMessage("Function application type mismatch."));
 
+        inferencer.unify(funType, expected,
+                buildErrorMessage("function application has incompatible types."));
+
+        // Return unified result type
         return inferencer.getSubstitutions().apply(resultType);
     }
 
