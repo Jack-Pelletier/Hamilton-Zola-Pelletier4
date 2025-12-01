@@ -138,7 +138,7 @@ public class MFLParser extends Parser {
       return null;
 
     trace("Exit <prog>");
-    return new ProgNode(exprs, super.getCurrLine());// lex.getLineNumber());
+    return new ProgNode(exprs, super.getCurrLine());
   }
 
   /**
@@ -299,7 +299,7 @@ public class MFLParser extends Parser {
       SyntaxNode func = getGoodParse(evalExpr());
       SyntaxNode lst = getGoodParse(evalExpr());
       match(TokenType.RPAREN, ")");
-      return new MapNode(func, lst, getCurrLine());
+      return new MapNode(func, lst, (int) getCurrLine());
     }
 
     // foldl(f init lst)
@@ -309,7 +309,7 @@ public class MFLParser extends Parser {
       SyntaxNode init = getGoodParse(evalExpr());
       SyntaxNode lst = getGoodParse(evalExpr());
       match(TokenType.RPAREN, ")");
-      return new FoldNode(func, init, lst, true, getCurrLine());
+      return new FoldNode(func, init, lst, true, (int) getCurrLine());
     }
 
     // foldr(f init lst)
@@ -319,7 +319,7 @@ public class MFLParser extends Parser {
       SyntaxNode init = getGoodParse(evalExpr());
       SyntaxNode lst = getGoodParse(evalExpr());
       match(TokenType.RPAREN, ")");
-      return new FoldNode(func, init, lst, false, getCurrLine());
+      return new FoldNode(func, init, lst, false, (int) getCurrLine());
     }
 
     // Do we have a unary sub (i.e., a negative).
