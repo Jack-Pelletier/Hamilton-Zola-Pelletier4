@@ -1,39 +1,52 @@
+/*
+ *   Copyright (C) 2022 -- 2025  Zachary A. Kissel
+ *
+ *   This program is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation, either version 3 of the License, or
+ *   (at your option) any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 package ast.nodes;
 
 import ast.EvaluationException;
 import ast.nodes.LambdaNode.Closure;
-import ast.nodes.LambdaNode.FunType;
 import ast.typesystem.TypeException;
 import ast.typesystem.inferencer.Inferencer;
+import ast.typesystem.types.FunType;
 import ast.typesystem.types.Type;
 import ast.typesystem.types.VarType;
 import environment.Environment;
 import environment.TypeEnvironment;
-import lexer.Token;
 
 /**
- * Represents a function application (E1)(E2)
+ * this is the node for function application (E1)(E2) or id(expr).
  */
-public final class ApplyNode extends SyntaxNode {
+public final class ApplyNode extends SyntaxNode
+{
     private final SyntaxNode function;
     private final SyntaxNode argument;
 
-    public ApplyNode(SyntaxNode function, SyntaxNode argument, long line) {
+    public ApplyNode(SyntaxNode function, SyntaxNode argument, long line)
+    {
         super(line);
         this.function = function;
         this.argument = argument;
     }
 
     /**
-     * Evaluate the application following the semantics:
-     *
-     * [[ (E1)(E2) ]]e =
-     * if [[E1]]e is a closure C:
-     * evaluate argument, bind to C.var in copied env, eval C.body
-     * else ⊥ (EvaluationException)
+     * this is where we evaluate application using closures.
      */
     @Override
-    public Object evaluate(Environment env) throws EvaluationException {
+    public Object evaluate(Environment env) throws EvaluationException
+    {
         Object f = function.evaluate(env);
 
         if (!(f instanceof Closure))
@@ -41,56 +54,47 @@ public final class ApplyNode extends SyntaxNode {
 
         Closure closure = (Closure) f;
 
-        // Evaluate argument
         Object argVal = argument.evaluate(env);
 
-        // Create new environment from closure environment
         Environment newEnv = closure.getEnvironment().copy();
         newEnv.updateEnvironment(closure.getParameter(), argVal);
 
-        // Evaluate body in closure's environment
         return closure.getBody().evaluate(newEnv);
     }
 
     /**
-     * typeOf:
+     * this is where we infer the type of (E1)(E2):
      *
-     * 1. funType = typeOf(function)
-     * 2. argType = typeOf(argument)
-     * 3. resultType = fresh type variable α
-     * 4. unify funType with (argType → resultType)
-     * 5. return Substitutions.apply(resultType)
+     *   funType = typeOf(E1)
+     *   argType = typeOf(E2)
+     *   α       = fresh type variable
+     *   unify funType with (argType -> α)
+     *   result type = applySubst(α)
      */
     @Override
     public Type typeOf(TypeEnvironment tenv, Inferencer inferencer)
-            throws TypeException {
+            throws TypeException
+    {
         Type funType = function.typeOf(tenv, inferencer);
         Type argType = argument.typeOf(tenv, inferencer);
 
-        // fresh α
         VarType resultType = tenv.getTypeVariable();
 
-        // unify funType with argType -> α
         FunType expected = new FunType(argType, resultType);
-        inferencer.unify(funType, expected, null);
+        inferencer.unify(funType, expected,
+                buildErrorMessage("Function application type mismatch."));
 
-        // Return the unified result type
         return inferencer.getSubstitutions().apply(resultType);
     }
 
-    /**
-     * Display subtree for debugging / AST visualization.
-     */
     @Override
-    public void displaySubtree(int indentAmt) {
+    public void displaySubtree(int indentAmt)
+    {
         printIndented("ApplyNode(", indentAmt);
-
         printIndented("function:", indentAmt + 2);
         function.displaySubtree(indentAmt + 4);
-
         printIndented("argument:", indentAmt + 2);
         argument.displaySubtree(indentAmt + 4);
-
         printIndented(")", indentAmt);
     }
 }
