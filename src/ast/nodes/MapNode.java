@@ -14,18 +14,17 @@
  *   You should have received a copy of the GNU General Public License
  *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package ast;
+package ast.nodes;
 
 import java.util.LinkedList;
 
+import ast.EvaluationException;
 import ast.nodes.LambdaNode.Closure;
-import ast.nodes.SyntaxNode;
 import ast.typesystem.TypeException;
 import ast.typesystem.inferencer.Inferencer;
 import ast.typesystem.types.FunType;
 import ast.typesystem.types.ListType;
 import ast.typesystem.types.Type;
-import ast.typesystem.types.VarType;
 import environment.Environment;
 import environment.TypeEnvironment;
 
@@ -101,23 +100,32 @@ public class MapNode extends SyntaxNode
         Type fType  = func.typeOf(tenv, inferencer);
         Type xsType = listExpr.typeOf(tenv, inferencer);
 
-        // this is where we create fresh type variables a, b
-        VarType a = tenv.getTypeVariable();
-        VarType b = tenv.getTypeVariable();
-
         // this is enforcing xs : list[a]
-        ListType expectedList = new ListType(a);
-        inferencer.unify(xsType, expectedList,
-                buildErrorMessage("map: second argument must be a list."));
+        if (!(xsType instanceof ListType))
+        {
+            throw new TypeException(buildErrorMessage(
+                    "map: second argument must be a list."));
+        }
+        ListType listTy = (ListType) xsType;
+        Type elemType = listTy.getElementType();
 
         // this is enforcing f : a -> b   (using LambdaNode.FunType)
-        FunType expectedFun = new FunType(a, b);
-        inferencer.unify(fType, expectedFun,
+        if (!(fType instanceof FunType))
+        {
+            throw new TypeException(buildErrorMessage(
+                    "map: first argument must be a function from element type to result type."));
+        }
+        FunType funTy = (FunType) fType;
+        Type paramTy = funTy.getParamType();
+        Type resultTy = funTy.getReturnType();
+
+        // this is enforcing that the function argument type matches the list element type
+        inferencer.unify(paramTy, elemType,
                 buildErrorMessage("map: first argument must be a function from element type to result type."));
 
         // this is where we return the result type list[b] with substitutions applied
-        Type finalB = inferencer.getSubstitutions().apply(b);
-        return new ListType(finalB);
+        Type finalResultTy = inferencer.getSubstitutions().apply(resultTy);
+        return new ListType(finalResultTy);
     }
 
     @Override
