@@ -81,6 +81,15 @@ public final class ValNode extends SyntaxNode
     public Object evaluate(Environment env) throws EvaluationException
     {
         Object val = expr.evaluate(env);
+
+        // If this value is a function (closure), ensure its captured environment
+        // also knows its own name so recursion works (fib, foo, revLst, etc.).
+        if (val instanceof LambdaNode.Closure)
+        {
+            LambdaNode.Closure clo = (LambdaNode.Closure) val;
+            clo.getEnvironment().updateEnvironment(name, clo);
+        }
+
         if (env.lookup(name) == null)
             env.updateEnvironment(name, val);
         else 
@@ -101,32 +110,31 @@ public final class ValNode extends SyntaxNode
      * @throws TypeException if there is a type error.
      */
     @Override
-public Type typeOf(TypeEnvironment tenv, Inferencer inferencer)
-        throws TypeException
-{
-    // If the expression is a lambda, we need to set up a placeholder
-    if (expr instanceof LambdaNode) {
-        // Create fresh α and β
-        VarType t1 = tenv.getTypeVariable();
-        VarType t2 = tenv.getTypeVariable();
+    public Type typeOf(TypeEnvironment tenv, Inferencer inferencer)
+            throws TypeException
+    {
+        // If the expression is a lambda, we need to set up a placeholder
+        if (expr instanceof LambdaNode) {
+            // Create fresh α and β
+            VarType t1 = tenv.getTypeVariable();
+            VarType t2 = tenv.getTypeVariable();
 
-        // Add name : t1 -> t2 to the environment BEFORE checking the body
-        tenv.updateEnvironment(name, new FunType(t1, t2));
+            // Add name : t1 -> t2 to the environment BEFORE checking the body
+            tenv.updateEnvironment(name, new FunType(t1, t2));
+        }
+
+        //  Now type-check the expression normally
+        Type valType = expr.typeOf(tenv, inferencer);
+
+        //  Apply substitutions (finalize)
+        valType = inferencer.getSubstitutions().apply(valType);
+
+        // Update environment with the final type (overwrites placeholder)
+        tenv.updateEnvironment(name, valType);
+
+        return valType;
     }
 
-    //  Now type-check the expression normally
-    Type valType = expr.typeOf(tenv, inferencer);
-
-    //  Apply substitutions (finalize)
-    valType = inferencer.getSubstitutions().apply(valType);
-
-    // Update environment with the final type (overwrites placeholder)
-    tenv.updateEnvironment(name, valType);
-
-    return valType;
-}
-
-    
     /**
      * Display a AST inferencertree with the indentation specified.
      * 

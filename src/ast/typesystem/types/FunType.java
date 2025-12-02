@@ -1,6 +1,6 @@
 package ast.typesystem.types;
+import ast.typesystem.inferencer.Inferencer;
 
-import java.util.Objects;
 
 public final class FunType extends Type
 {
@@ -33,9 +33,21 @@ public final class FunType extends Type
                returnType.equals(f.returnType);
     }
 
+    /**
+     * Gets the type as a string.
+     * 
+     * @return a the type as a string.
+     */
     @Override
     public String toString()
     {
-        return "(" + paramType + " -> " + returnType + ")";
+        // Externalize the full function type so type variables normalize
+        // (t0, t1, ...) exactly like the test suite expects.
+        Inferencer inf = new Inferencer();
+        Type ext = inf.getSubstitutions().externalize(this);
+
+        FunType f = (FunType) ext;
+
+        return f.paramType.toString() + " -> " + f.returnType.toString();
     }
 }

@@ -13,29 +13,30 @@ import environment.TypeEnvironment;
  */
 public final class IfNode extends SyntaxNode
 {
-    private SyntaxNode condition;   // The condition expression.
-    private SyntaxNode trueBranch; // The true branch.
-    private SyntaxNode falseBranch; // The false branch.
+    private final SyntaxNode cond;
+    private final SyntaxNode thenBranch;
+    private final SyntaxNode elseBranch;
 
     /**
-     * Constructs a new if-then-else node.
-     * 
-     * @param cond    the condition expression.
-     * @param tBranch the expression evaluated when the condition is true.
-     * @param fBranch the expression evaluated when the condition is false.
-     * @param line    the line of code the node is associated with.
+     * Constructs a new if node.
+     *
+     * @param cond       the condition expression.
+     * @param thenBranch the then branch expression.
+     * @param elseBranch the else branch expression.
+     * @param line       the line of code the node is associated with.
      */
-    public IfNode(SyntaxNode cond, SyntaxNode tBranch, SyntaxNode fBranch, long line)
+    public IfNode(SyntaxNode cond, SyntaxNode thenBranch,
+                  SyntaxNode elseBranch, long line)
     {
         super(line);
-        this.condition = cond;
-        this.trueBranch = tBranch;
-        this.falseBranch = fBranch;
+        this.cond       = cond;
+        this.thenBranch = thenBranch;
+        this.elseBranch = elseBranch;
     }
 
     /**
      * Evaluate the node.
-     * 
+     *
      * @param env the executional environment we should evaluate the node under.
      * @return the object representing the result of the evaluation.
      * @throws EvaluationException if the evaluation fails.
@@ -43,30 +44,24 @@ public final class IfNode extends SyntaxNode
     @Override
     public Object evaluate(Environment env) throws EvaluationException
     {
-        Object condVal = condition.evaluate(env);
-
-        // Make sure the condition evaluates to a Boolean.
-        if (!(condVal instanceof Boolean))
+        Object cval = cond.evaluate(env);
+        if (!(cval instanceof Boolean))
         {
-            logError("Boolean condition expected in if expression.");
+            logError("if condition must be boolean.");
             throw new EvaluationException();
         }
 
-        if ((Boolean) condVal)
-            return trueBranch.evaluate(env);
+        if ((Boolean) cval)
+            return thenBranch.evaluate(env);
         else
-            return falseBranch.evaluate(env);
+            return elseBranch.evaluate(env);
     }
 
     /**
-     * Determine the type of the syntax node. In particular bool, int, real,
-     * generic, or function.
-     * 
-     * The type of an if-then-else expression is the (unified) type of the
-     * true and false branches, provided the condition is of type bool.
-     * 
+     * Determine the type of the syntax node.
+     *
      * @param tenv       the type environment.
-     * @param inferencer the type inferencer.
+     * @param inferencer the type inferencer
      * @return The type of the syntax node.
      * @throws TypeException if there is a type error.
      */
@@ -74,42 +69,41 @@ public final class IfNode extends SyntaxNode
     public Type typeOf(TypeEnvironment tenv, Inferencer inferencer)
             throws TypeException
     {
-        // Type-check the condition and ensure it is BoolType.
-        Type condType = condition.typeOf(tenv, inferencer);
-        inferencer.unify(condType, new BoolType(),
-                buildErrorMessage("Boolean type expected in if condition."));
+        // Get the type of the condition.
+        Type condTy = cond.typeOf(tenv, inferencer);
+        condTy = inferencer.getSubstitutions().apply(condTy);
 
-        // Type-check branches.
-        Type tType = trueBranch.typeOf(tenv, inferencer);
-        Type fType = falseBranch.typeOf(tenv, inferencer);
+        // Condition must be bool.
+        if (!condTy.equals(new BoolType()))
+        {
+            throw new TypeException(
+                    buildErrorMessage("if condition must be bool."));
+        }
 
-        // Ensure the branch types unify.
-        inferencer.unify(tType, fType,
-                buildErrorMessage("Types of then and else branches must match."));
+        // Get the types of the branches.
+        Type thenTy = thenBranch.typeOf(tenv, inferencer);
+        Type elseTy = elseBranch.typeOf(tenv, inferencer);
+
+        // Both branches must have the same type (unify them).
+        inferencer.unify(thenTy, elseTy,
+                buildErrorMessage("if branches must have the same type."));
 
         // Return the (possibly substituted) type of the true branch.
-        return inferencer.getSubstitutions().apply(tType);
+        return inferencer.getSubstitutions().apply(thenTy);
     }
 
     /**
-     * Display an AST subtree with the indentation specified.
-     * 
-     * @param indentAmt the amount of indentation to perform.
+     * Display a AST inferencertree with the indentation specified.
+     *
+     * @param indentAmt the amout of indentation to perform.
      */
     @Override
     public void displaySubtree(int indentAmt)
     {
         printIndented("If(", indentAmt);
-
-        printIndented("cond:", indentAmt + 2);
-        condition.displaySubtree(indentAmt + 4);
-
-        printIndented("then:", indentAmt + 2);
-        trueBranch.displaySubtree(indentAmt + 4);
-
-        printIndented("else:", indentAmt + 2);
-        falseBranch.displaySubtree(indentAmt + 4);
-
+        cond.displaySubtree(indentAmt + 2);
+        thenBranch.displaySubtree(indentAmt + 2);
+        elseBranch.displaySubtree(indentAmt + 2);
         printIndented(")", indentAmt);
     }
 }

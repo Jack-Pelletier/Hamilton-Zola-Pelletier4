@@ -221,7 +221,7 @@ public class Lexer
             return new Token(TokenType.EQ, "=");
         case '!':
             stream.advance();
-            if (stream.getCurrentChar() == '!')
+            if (stream.getCurrentChar() == '=')
                 return new Token(TokenType.NEQ, "!=");
             else
             {

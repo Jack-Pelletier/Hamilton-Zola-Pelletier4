@@ -4,7 +4,7 @@
  *   This program is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
  *   the Free Software Foundation, either version 3 of the License, or
- *   (at your option) any later version.
+ *   at your option any later version.
  *
  *   This program is distributed in the hope that it will be useful,
  *   but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -24,6 +24,7 @@ import ast.typesystem.types.ListType;
 import ast.typesystem.types.RealType;
 import ast.typesystem.types.Type;
 import ast.typesystem.types.VarType;
+import ast.typesystem.types.FunType;
 import environment.TypeEnvironment;
 
 /**
@@ -76,6 +77,15 @@ public class Substitutions {
                     apply(((ListType) type).getElementType()));
         }
 
+        // Handle the function type.
+        else if (type instanceof FunType)
+        {
+            FunType f = (FunType) type;
+            Type newParam  = apply(f.getParamType());
+            Type newReturn = apply(f.getReturnType());
+            return new FunType(newParam, newReturn);
+        }
+
         // Handle the var type.
         else if (type instanceof VarType)
         {
@@ -124,7 +134,7 @@ public class Substitutions {
      * @param newType  the new substitution
      * @param currType the current type (before new substitution information is
      *                 applied).
-     * @return A new type that takes into account the new type information tv :=
+     * @return A new type that takes into account the new type information tv := 
      *         newType.
      */
     private Type propagateSubstitution(VarType tv, Type newType, Type currType) {
@@ -148,6 +158,14 @@ public class Substitutions {
         else if (currType instanceof ListType) {
             return new ListType(propagateSubstitution(tv, newType,
                     ((ListType) currType).getElementType()));
+        }
+
+        // Handle function substitutions.
+        else if (currType instanceof FunType) {
+            FunType f = (FunType) currType;
+            Type newParam  = propagateSubstitution(tv, newType, f.getParamType());
+            Type newReturn = propagateSubstitution(tv, newType, f.getReturnType());
+            return new FunType(newParam, newReturn);
         }
 
         // When in doubt, do nothing.
@@ -175,6 +193,14 @@ public class Substitutions {
         else if (type instanceof ListType)
             return new ListType(
                     externalizeHelper(exSubst, tenv, ((ListType) type).getElementType()));
+
+        // Handle the function type.
+        else if (type instanceof FunType) {
+            FunType f = (FunType) type;
+            Type newParam  = externalizeHelper(exSubst, tenv, f.getParamType());
+            Type newReturn = externalizeHelper(exSubst, tenv, f.getReturnType());
+            return new FunType(newParam, newReturn);
+        }
 
         // Handle the var type.
         else if (type instanceof VarType) {

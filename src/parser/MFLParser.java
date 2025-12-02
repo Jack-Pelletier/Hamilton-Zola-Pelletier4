@@ -20,17 +20,17 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.LinkedList;
 
-import ast.FoldNode;
-import ast.MapNode;
 import ast.SyntaxTree;
 import ast.nodes.ApplyNode;
 import ast.nodes.BinOpNode;
+import ast.nodes.FoldNode;
 import ast.nodes.HeadNode;
 import ast.nodes.IfNode;
 import ast.nodes.LambdaNode;
 import ast.nodes.LenNode;
 import ast.nodes.LetNode;
 import ast.nodes.ListNode;
+import ast.nodes.MapNode;
 import ast.nodes.ProgNode;
 import ast.nodes.RelOpNode;
 import ast.nodes.SyntaxNode;
@@ -259,27 +259,65 @@ public class MFLParser extends Parser
         // this is map f xs
         if (checkMatch(TokenType.MAP))
         {
-            SyntaxNode func = getGoodParse(evalExpr());
-            SyntaxNode lst  = getGoodParse(evalExpr());
-            return new MapNode(func, lst, getCurrLine());
+            // support both: map f xs  and  map( f xs )
+            if (tokenIs(TokenType.LPAREN))
+            {
+                match(TokenType.LPAREN, "(");
+                SyntaxNode func = getGoodParse(evalExpr());
+                SyntaxNode lst  = getGoodParse(evalExpr());
+                match(TokenType.RPAREN, ")");
+                return new MapNode(func, lst, getCurrLine());
+            }
+            else
+            {
+                SyntaxNode func = getGoodParse(evalExpr());
+                SyntaxNode lst  = getGoodParse(evalExpr());
+                return new MapNode(func, lst, getCurrLine());
+            }
         }
 
         // this is foldl f init xs
         if (checkMatch(TokenType.FOLDL))
         {
-            SyntaxNode func = getGoodParse(evalExpr());
-            SyntaxNode init = getGoodParse(evalExpr());
-            SyntaxNode lst  = getGoodParse(evalExpr());
-            return new FoldNode(func, init, lst, true, getCurrLine());
+            // support both: foldl f init xs  and  foldl( f init xs )
+            if (tokenIs(TokenType.LPAREN))
+            {
+                match(TokenType.LPAREN, "(");
+                SyntaxNode func = getGoodParse(evalExpr());
+                SyntaxNode init = getGoodParse(evalExpr());
+                SyntaxNode lst  = getGoodParse(evalExpr());
+                match(TokenType.RPAREN, ")");
+                return new FoldNode(func, init, lst, false, getCurrLine());
+            }
+            else
+            {
+                SyntaxNode func = getGoodParse(evalExpr());
+                SyntaxNode init = getGoodParse(evalExpr());
+                SyntaxNode lst  = getGoodParse(evalExpr());
+                return new FoldNode(func, init, lst, false, getCurrLine());
+            }
         }
 
         // this is foldr f init xs
         if (checkMatch(TokenType.FOLDR))
         {
-            SyntaxNode func = getGoodParse(evalExpr());
-            SyntaxNode init = getGoodParse(evalExpr());
-            SyntaxNode lst  = getGoodParse(evalExpr());
-            return new FoldNode(func, init, lst, false, getCurrLine());
+            // support both: foldr f init xs  and  foldr( f init xs )
+            if (tokenIs(TokenType.LPAREN))
+            {
+                match(TokenType.LPAREN, "(");
+                SyntaxNode func = getGoodParse(evalExpr());
+                SyntaxNode init = getGoodParse(evalExpr());
+                SyntaxNode lst  = getGoodParse(evalExpr());
+                match(TokenType.RPAREN, ")");
+                return new FoldNode(func, init, lst, true, getCurrLine());
+            }
+            else
+            {
+                SyntaxNode func = getGoodParse(evalExpr());
+                SyntaxNode init = getGoodParse(evalExpr());
+                SyntaxNode lst  = getGoodParse(evalExpr());
+                return new FoldNode(func, init, lst, true, getCurrLine());
+            }
         }
 
         // this is unary minus
