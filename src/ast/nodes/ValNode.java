@@ -19,29 +19,29 @@ package ast.nodes;
 import ast.EvaluationException;
 import ast.typesystem.TypeException;
 import ast.typesystem.inferencer.Inferencer;
+import ast.typesystem.types.FunType;
 import ast.typesystem.types.Type;
+import ast.typesystem.types.VarType;
 import environment.Environment;
 import environment.TypeEnvironment;
 import lexer.Token;
 
 /**
- * This node represents a value declaration:
- *   val x = expr
+ * This node represents a global value.
+ * 
+ * @author Zach Kissel
  */
 public final class ValNode extends SyntaxNode
 {
-    // name being defined (identifier token)
     private Token name;
-
-    // expression whose value we bind to name
     private SyntaxNode expr;
 
     /**
-     * Construct a new ValNode.
-     *
-     * @param name  identifier token for the binding
-     * @param expr  expression to evaluate and bind
-     * @param line  source line number
+     * Constructs a new value node that represents a global value.
+     * 
+     * @param name the name of the value.
+     * @param expr the value of the name.
+     * @param line the line of code the node is associated with.
      */
     public ValNode(Token name, SyntaxNode expr, long line)
     {
@@ -51,52 +51,99 @@ public final class ValNode extends SyntaxNode
     }
 
     /**
-     * Evaluate the val declaration:
-     *   - evaluate expr
-     *   - update the runtime environment with name = value
-     *   - return the *name* of the binding (this is what the tests expect)
+     * Returns the name of the value.
+     * 
+     * @return a Token representing the name of the function.
      */
-    @Override
+    public Token getName()
+    {
+        return name;
+    }
+
+    /**
+     * Returns the expression associated with the value.
+     * 
+     * @return the root of the AST that represents the value associated with the
+     *         name.
+     */
+    public SyntaxNode getExpression()
+    {
+        return expr;
+    }
+
+    /**
+     * Evaluate the node.
+     * 
+     * @param env the executional environment we should evaluate the node under.
+     * @return the object representing the result of the evaluation.
+     * @throws EvaluationException if the evaluation fails.
+     */
     public Object evaluate(Environment env) throws EvaluationException
     {
-        // evaluate the right-hand side
-        Object value = expr.evaluate(env);
+        Object val = expr.evaluate(env);
 
-        // update runtime environment
-        env.updateEnvironment(name, value);
+        // If this value is a function (closure), ensure its captured environment
+        // also knows its own name so recursion works (fib, foo, revLst, etc.).
+        if (val instanceof LambdaNode.Closure)
+        {
+            LambdaNode.Closure clo = (LambdaNode.Closure) val;
+            clo.getEnvironment().updateEnvironment(name, clo);
+        }
 
-        // the result of `val x = ...` is the identifier "x", not the value
+        if (env.lookup(name) == null)
+            env.updateEnvironment(name, val);
+        else 
+        {
+            logError(name.getValue() + " already defined.");
+            throw new EvaluationException();
+        }
         return name.getValue();
     }
 
     /**
-     * Infer the type of the val declaration:
-     *   - infer type of expr under current type environment
-     *   - apply any current substitutions
-     *   - bind name to that type in the type environment
-     *   - the type of the whole declaration is the type of expr
+     * Determine the type of the syntax node. In particluar bool, int, real,
+     * generic, or function.
+     * 
+     * @param tenv       the type environment.
+     * @param inferencer the type inferencer
+     * @return The type of the syntax node.
+     * @throws TypeException if there is a type error.
      */
     @Override
     public Type typeOf(TypeEnvironment tenv, Inferencer inferencer)
             throws TypeException
     {
-        // get the type of the expression
-        Type exprType = expr.typeOf(tenv, inferencer);
+        // If the expression is a lambda, we need to set up a placeholder
+        if (expr instanceof LambdaNode) {
+            // Create fresh α and β
+            VarType t1 = tenv.getTypeVariable();
+            VarType t2 = tenv.getTypeVariable();
 
-        // apply current substitutions
-        Type finalType = inferencer.getSubstitutions().apply(exprType);
+            // Add name : t1 -> t2 to the environment BEFORE checking the body
+            tenv.updateEnvironment(name, new FunType(t1, t2));
+        }
 
-        // bind the name to its (possibly substituted) type
-        tenv.updateEnvironment(name, finalType);
+        //  Now type-check the expression normally
+        Type valType = expr.typeOf(tenv, inferencer);
 
-        // the type of the val declaration is the type of the expression
-        return finalType;
+        //  Apply substitutions (finalize)
+        valType = inferencer.getSubstitutions().apply(valType);
+
+        // Update environment with the final type (overwrites placeholder)
+        tenv.updateEnvironment(name, valType);
+
+        return valType;
     }
 
-    @Override
+    /**
+     * Display a AST inferencertree with the indentation specified.
+     * 
+     * @param indentAmt the amout of indentation to perform.
+     */
     public void displaySubtree(int indentAmt)
     {
-        printIndented("ValNode(" + name.getValue() + ")", indentAmt);
+        printIndented("Val[" + name.getValue() + "](", indentAmt);
         expr.displaySubtree(indentAmt + 2);
+        printIndented(")", indentAmt);
     }
 }
