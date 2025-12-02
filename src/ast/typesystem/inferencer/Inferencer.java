@@ -7,7 +7,8 @@
  *   (at your option) any later version.
  *
  *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY.  See the GNU General Public License for more details.
+ *   but WITHOUT ANY WARRANTY or MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ *   See the GNU General Public License for more details.
  *
  *   You should have received a copy of the GNU General Public License
  *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
@@ -24,10 +25,12 @@ import ast.typesystem.types.Type;
 import ast.typesystem.types.VarType;
 
 /**
- * Represents the core type inferencer. It amasses a set of type equations and
+ * Represents the core type infrencer. It amasses a set of type equations and
  * solves them through unification. The solutions can then be applied to type
  * variables by calling {@code applySubstitution}. To add new constraints the
  * consumer must call {@code unify}.
+ *
+ * @author Zach Kissel
  */
 public class Inferencer
 {
@@ -35,7 +38,7 @@ public class Inferencer
     private Substitutions subst;
 
     /**
-     * Build a new type inferencer with an empty substitution set.
+     * The default constructor builds a new type substitution map.
      */
     public Inferencer()
     {
@@ -43,7 +46,7 @@ public class Inferencer
     }
 
     /**
-     * Get the string form of the inferencer.
+     * Get the string form of infrerencer.
      *
      * @return A string representation of the known substitutions.
      */
@@ -64,10 +67,10 @@ public class Inferencer
     }
 
     /**
-     * Unify the first and second type, updating the substitution map if
-     * needed. This attempts to find a set of substitutions that makes
-     * type1 equal to type2. If no such set of substitutions exists, a
-     * type exception is thrown.
+     * Unifies the first and second type updating the substitution map if
+     * needed. In particular this method attempts to find a set of substitutions
+     * that makes type1 and type2 equal. If no such set of substitutions
+     * exists, a type exception is thrown.
      *
      * @param type1 the first type
      * @param type2 the second type
@@ -76,25 +79,26 @@ public class Inferencer
      */
     public void unify(Type type1, Type type2, String msg) throws TypeException
     {
-        // Apply the known substitutions.
+        // Apply the known substitutions first.
         type1 = subst.apply(type1);
         type2 = subst.apply(type2);
 
         if (type1 == null || type2 == null)
+        {
             throw new TypeException("Invalid type or unknown value.");
+        }
 
-        // If the types are already equal, nothing else to do.
+        // If they are already equal, nothing to do.
         if (type1.equals(type2))
             return;
 
-        // Case 1: type1 is a type variable.
+        // Try to bind type1 to type2 if it is a type variable.
         if (type1 instanceof VarType)
         {
-            VarType v1 = (VarType) type1;
-
-            if (v1.checkConstraint(type2) && noOccurrence(v1, type2))
+            VarType tv = (VarType) type1;
+            if (tv.checkConstraint(type2) && noOccurrence(tv, type2))
             {
-                subst.updateSubstitutions(v1, type2);
+                subst.updateSubstitutions(tv, type2);
                 return;
             }
             else
@@ -103,14 +107,13 @@ public class Inferencer
             }
         }
 
-        // Case 2: type2 is a type variable.
+        // Try to bind type2 to type1 if it is a type variable.
         if (type2 instanceof VarType)
         {
-            VarType v2 = (VarType) type2;
-
-            if (v2.checkConstraint(type1) && noOccurrence(v2, type1))
+            VarType tv = (VarType) type2;
+            if (tv.checkConstraint(type1) && noOccurrence(tv, type1))
             {
-                subst.updateSubstitutions(v2, type1);
+                subst.updateSubstitutions(tv, type1);
                 return;
             }
             else
@@ -119,33 +122,32 @@ public class Inferencer
             }
         }
 
-        // Case 3: both are list types. Unify the element types.
+        // Handle list types: element types must unify.
         if (type1 instanceof ListType && type2 instanceof ListType)
         {
             ListType l1 = (ListType) type1;
             ListType l2 = (ListType) type2;
-
             unify(l1.getElementType(), l2.getElementType(), msg);
             return;
         }
 
-        // Case 4: both are function types. Unify parameter and return types.
+        // Handle function types: parameter and return types must both unify.
         if (type1 instanceof FunType && type2 instanceof FunType)
         {
             FunType f1 = (FunType) type1;
             FunType f2 = (FunType) type2;
 
-            unify(f1.getParamType(),  f2.getParamType(),  msg);
+            unify(f1.getParamType(), f2.getParamType(), msg);
             unify(f1.getReturnType(), f2.getReturnType(), msg);
             return;
         }
 
-        // If we get here, we do not know how to unify these types.
+        // At this point they are different concrete types that do not match.
         throw new TypeException("Unification error: " + msg);
     }
 
     /**
-     * Make sure that tv does not appear in ty. This is used by unification to
+     * Makes sure that tv does not appear in ty. This is used by unification to
      * ensure that a type variable on the left hand side of an equation does not
      * appear on the right hand side of the equation.
      *
